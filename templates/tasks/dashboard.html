@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Мои поручения</h1>
+<p>Пользователь: {{ polzovatel }} — роль: {{ polzovatel.get_rol_display }}</p>
+
+<ul>
+    {% for zadacha in zadachi %}
+        <li>
+            <strong>{{ zadacha.zagolovok }}</strong> —
+            {{ zadacha.get_status_display }} —
+            срок: {{ zadacha.srok_vypolneniya }}
+        </li>
+    {% empty %}
+        <li>Поручений нет.</li>
+    {% endfor %}
+</ul>
+
+<a href="{% url 'logout' %}">Выйти</a>
+{% endblock %}
