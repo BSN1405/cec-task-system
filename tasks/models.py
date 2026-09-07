@@ -163,3 +163,33 @@ class Otsenka(models.Model):
 
     def __str__(self):
         return f'Оценка {self.ball}/10 за "{self.zadacha.zagolovok}"'
+
+def put_vlozhenii(instance, filename):
+    return f'zadachi/{instance.zadacha_id}/{filename}'
+
+
+class Vlozhenie(models.Model):
+    """Файл, прикреплённый к задаче (результат работы, отчёт и т.д.)"""
+
+    zadacha = models.ForeignKey(
+        Zadacha,
+        verbose_name='Задача',
+        related_name='vlozheniya',
+        on_delete=models.CASCADE,
+    )
+    fail = models.FileField('Файл', upload_to=put_vlozhenii)
+    opisanie = models.CharField('Описание файла', max_length=250, blank=True)
+    zagruzil = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name='Загрузил',
+        on_delete=models.CASCADE,
+    )
+    data_zagruzki = models.DateTimeField('Дата загрузки', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Вложение'
+        verbose_name_plural = 'Вложения'
+        ordering = ['-data_zagruzki']
+
+    def __str__(self):
+        return f'{self.fail.name} ({self.zadacha.zagolovok})'

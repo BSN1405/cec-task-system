@@ -5,6 +5,13 @@
     <title>ЦИК КР — Служебные поручения</title>
 </head>
 <body>
+    {% if messages %}
+        <ul>
+        {% for message in messages %}
+            <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+    {% endif %}
     {% block content %}{% endblock %}
 </body>
 </html>

@@ -3,12 +3,18 @@
 <h1>Мои поручения</h1>
 <p>Пользователь: {{ polzovatel }} — роль: {{ polzovatel.get_rol_display }}</p>
 
+{% if polzovatel.is_rukovoditel %}
+    <a href="{% url 'sozdat_zadachu' %}">+ Создать поручение</a>
+{% endif %}
+
 <ul>
     {% for zadacha in zadachi %}
         <li>
-            <strong>{{ zadacha.zagolovok }}</strong> —
-            {{ zadacha.get_status_display }} —
-            срок: {{ zadacha.srok_vypolneniya }}
+            <a href="{% url 'detal_zadachi' zadacha.pk %}">{{ zadacha.zagolovok }}</a>
+            — {{ zadacha.get_status_display }}
+            — приоритет: {{ zadacha.get_prioritet_display }}
+            — срок: {{ zadacha.srok_vypolneniya }}
+            {% if zadacha.prosrochena %} — <strong>ПРОСРОЧЕНО</strong>{% endif %}
         </li>
     {% empty %}
         <li>Поручений нет.</li>

@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>{{ zadacha.zagolovok }}</h1>
+
+<p>{{ zadacha.opisanie }}</p>
+<p>Отдел: {{ zadacha.otdel }}</p>
+<p>Поставил: {{ zadacha.postavil }}</p>
+<p>Исполнитель: {{ zadacha.ispolnitel }}</p>
+<p>Приоритет: {{ zadacha.get_prioritet_display }}</p>
+<p>Статус: <strong>{{ zadacha.get_status_display }}</strong></p>
+<p>Срок: {{ zadacha.srok_vypolneniya }}{% if zadacha.prosrochena %} — <strong>ПРОСРОЧЕНО</strong>{% endif %}</p>
+
+{% if zadacha.otsenka %}
+    <p>Оценка: {{ zadacha.otsenka.ball }}/10 — {{ zadacha.otsenka.kommentarii_rukovoditelya }}</p>
+{% endif %}
+
+<hr>
+
+{# --- действия сотрудника --- #}
+{% if not polzovatel.is_rukovoditel %}
+    {% if zadacha.status == 'novaya' %}
+        <form method="post" action="{% url 'prinyat_zadachu' zadacha.pk %}">
+            {% csrf_token %}
+            <button type="submit">Принять к исполнению</button>
+        </form>
+    {% elif zadacha.status == 'prinyata' %}
+        <form method="post" action="{% url 'nachat_rabotu' zadacha.pk %}">
+            {% csrf_token %}
+            <button type="submit">Начать работу</button>
+        </form>
+    {% elif zadacha.status == 'v_rabote' or zadacha.status == 'na_dorabotke' %}
+        <form method="post" action="{% url 'otpravit_na_proverku' zadacha.pk %}">
+            {% csrf_token %}
+            <button type="submit">Отправить на проверку</button>
+        </form>
+    {% endif %}
+{% endif %}
+
+{# --- действия руководителя --- #}
+{% if polzovatel.is_rukovoditel and zadacha.status == 'na_proverke' %}
+    <h3>Проверка выполнения</h3>
+    <form method="post" action="{% url 'proverit_zadachu' zadacha.pk %}">
+        {% csrf_token %}
+        {{ otsenka_form.as_p }}
+        <button type="submit" name="action" value="podtverdit">Подтвердить выполнение</button>
+        <button type="submit" name="action" value="na_dorabotku" formnovalidate>Отправить на доработку</button>
+    </form>
+{% endif %}
+
+<hr>
+
+<h3>Вложения</h3>
+<ul>
+    {% for v in zadacha.vlozheniya.all %}
+        <li>
+            <a href="{{ v.fail.url }}" target="_blank">{{ v.fail.name|cut:"zadachi/" }}</a>
+            — загрузил {{ v.zagruzil }} ({{ v.data_zagruzki }})
+            {% if v.opisanie %} — {{ v.opisanie }}{% endif %}
+        </li>
+    {% empty %}
+        <li>Файлов пока нет.</li>
+    {% endfor %}
+</ul>
+
+<form method="post" action="{% url 'zagruzit_fail' zadacha.pk %}" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ vlozhenie_form.as_p }}
+    <button type="submit">Прикрепить файл</button>
+</form>
+
+<h3>Комментарии</h3>
+<ul>
+    {% for kom in zadacha.kommentarii.all %}
+        <li><strong>{{ kom.avtor }}</strong> ({{ kom.data_sozdaniya }}): {{ kom.tekst }}</li>
+    {% empty %}
+        <li>Комментариев пока нет.</li>
+    {% endfor %}
+</ul>
+
+<form method="post">
+    {% csrf_token %}
+    {{ kom_form.as_p }}
+    <button type="submit">Добавить комментарий</button>
+</form>
+
+<a href="{% url 'dashboard' %}">Назад</a>
+{% endblock %}
