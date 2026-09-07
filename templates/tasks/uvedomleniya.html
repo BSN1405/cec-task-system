@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Уведомления</h1>
+<ul>
+    {% for u in spisok %}
+        <li>
+            <a href="{% url 'detal_zadachi' u.zadacha.pk %}">{{ u.tekst }}</a>
+            — {{ u.data_sozdaniya }}
+        </li>
+    {% empty %}
+        <li>Уведомлений нет.</li>
+    {% endfor %}
+</ul>
+<a href="{% url 'dashboard' %}">Назад</a>
+{% endblock %}

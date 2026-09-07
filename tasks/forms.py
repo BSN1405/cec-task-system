@@ -1,5 +1,5 @@
 from django import forms
-from .models import Zadacha, Otsenka, Kommentarii, Vlozhenie
+from .models import Zadacha, Kommentarii, Vlozhenie
 
 
 class ZadachaForm(forms.ModelForm):
@@ -20,21 +20,10 @@ class ZadachaForm(forms.ModelForm):
 
     def __init__(self, *args, rukovoditel=None, **kwargs):
         super().__init__(*args, **kwargs)
-        # Исполнителя можно выбрать только из отдела руководителя
         if rukovoditel is not None and rukovoditel.otdel_id:
             self.fields['ispolnitel'].queryset = rukovoditel.otdel.sotrudniki.filter(
                 rol='sotrudnik'
             )
-
-
-class OtsenkaForm(forms.ModelForm):
-    class Meta:
-        model = Otsenka
-        fields = ['ball', 'kommentarii_rukovoditelya']
-        labels = {
-            'ball': 'Оценка (0-10)',
-            'kommentarii_rukovoditelya': 'Комментарий к оценке',
-        }
 
 
 class KommentariiForm(forms.ModelForm):
@@ -45,6 +34,7 @@ class KommentariiForm(forms.ModelForm):
             'tekst': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Написать комментарий...'})
         }
         labels = {'tekst': ''}
+
 
 class VlozhenieForm(forms.ModelForm):
     class Meta:

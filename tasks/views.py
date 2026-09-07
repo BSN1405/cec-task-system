@@ -2,9 +2,17 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
-from .forms import KommentariiForm, OtsenkaForm, ZadachaForm, VlozhenieForm
+from .forms import KommentariiForm, ZadachaForm, VlozhenieForm
 from .models import Zadacha
+
+from .notifications import (
+    uvedomit_o_novoi_zadache,
+    uvedomit_o_proverke,
+    uvedomit_o_dorabotke,
+    uvedomit_o_podtverzhdenii,
+)
 
 
 @login_required
@@ -16,7 +24,41 @@ def dashboard(request):
     else:
         zadachi = Zadacha.objects.filter(ispolnitel=polzovatel)
 
-    context = {'zadachi': zadachi, 'polzovatel': polzovatel}
+    # --- фильтры ---
+    status_filtr = request.GET.get('status', '')
+    prioritet_filtr = request.GET.get('prioritet', '')
+    srok_filtr = request.GET.get('srok', '')
+    poisk = request.GET.get('poisk', '').strip()
+
+    if status_filtr:
+        zadachi = zadachi.filter(status=status_filtr)
+
+    if prioritet_filtr:
+        zadachi = zadachi.filter(prioritet=prioritet_filtr)
+
+    if srok_filtr == 'prosrocheno':
+        zadachi = zadachi.exclude(status=Zadacha.STATUS_VYPOLNENA).filter(
+            srok_vypolneniya__lt=timezone.now().date()
+        )
+    elif srok_filtr == 'segodnya':
+        zadachi = zadachi.filter(srok_vypolneniya=timezone.now().date())
+    elif srok_filtr == 'nedelya':
+        cherez_nedelyu = timezone.now().date() + timezone.timedelta(days=7)
+        zadachi = zadachi.filter(srok_vypolneniya__lte=cherez_nedelyu, srok_vypolneniya__gte=timezone.now().date())
+
+    if poisk:
+        zadachi = zadachi.filter(zagolovok__icontains=poisk)
+
+    context = {
+        'zadachi': zadachi,
+        'polzovatel': polzovatel,
+        'status_filtr': status_filtr,
+        'prioritet_filtr': prioritet_filtr,
+        'srok_filtr': srok_filtr,
+        'poisk': poisk,
+        'statusy': Zadacha.STATUSY,
+        'prioritety': Zadacha.PRIORITETY,
+    }
     return render(request, 'tasks/dashboard.html', context)
 
 
@@ -38,6 +80,7 @@ def sozdat_zadachu(request):
                 form.add_error(None, e)
             else:
                 zadacha.save()
+                uvedomit_o_novoi_zadache(zadacha)
                 messages.success(request, 'Поручение создано и назначено сотруднику.')
                 return redirect('dashboard')
     else:
@@ -69,27 +112,22 @@ def detal_zadachi(request, pk):
     else:
         kom_form = KommentariiForm()
 
-    otsenka_form = None
-    if polzovatel.is_rukovoditel() and zadacha.status == Zadacha.STATUS_NA_PROVERKE:
-        otsenka_form = OtsenkaForm()
-
     vlozhenie_form = VlozhenieForm()
 
     context = {
         'zadacha': zadacha,
         'polzovatel': polzovatel,
         'kom_form': kom_form,
-        'otsenka_form': otsenka_form,
         'vlozhenie_form': vlozhenie_form,
     }
     return render(request, 'tasks/detal_zadachi.html', context)
+
 
 @login_required
 def zagruzit_fail(request, pk):
     zadacha = get_object_or_404(Zadacha, pk=pk)
     polzovatel = request.user
 
-    # прикреплять файл может либо руководитель, поставивший задачу, либо исполнитель
     if polzovatel.id not in (zadacha.postavil_id, zadacha.ispolnitel_id):
         raise PermissionDenied('У вас нет доступа к этой задаче.')
 
@@ -130,13 +168,13 @@ def otpravit_na_proverku(request, pk):
     zadacha = get_object_or_404(Zadacha, pk=pk, ispolnitel=request.user)
     if zadacha.status in (Zadacha.STATUS_V_RABOTE, Zadacha.STATUS_NA_DORABOTKE):
         zadacha.otpravit_na_proverku()
+        uvedomit_o_proverke(zadacha)
         messages.success(request, 'Поручение отправлено руководителю на проверку.')
     return redirect('detal_zadachi', pk=pk)
 
 
 @login_required
 def proverit_zadachu(request, pk):
-    """Руководитель подтверждает выполнение (с оценкой) или отправляет на доработку"""
     zadacha = get_object_or_404(Zadacha, pk=pk, postavil=request.user)
     if zadacha.status != Zadacha.STATUS_NA_PROVERKE:
         raise PermissionDenied('Это поручение сейчас не находится на проверке.')
@@ -144,18 +182,19 @@ def proverit_zadachu(request, pk):
     action = request.POST.get('action')
 
     if action == 'podtverdit':
-        form = OtsenkaForm(request.POST)
-        if form.is_valid():
-            otsenka = form.save(commit=False)
-            otsenka.zadacha = zadacha
-            otsenka.otsenil = request.user
-            otsenka.save()
-            zadacha.podtverdit_vypolnenie()
-            messages.success(request, 'Выполнение подтверждено, оценка выставлена.')
-        else:
-            messages.error(request, 'Укажите корректную оценку от 0 до 10.')
+        zadacha.podtverdit_vypolnenie()
+        uvedomit_o_podtverzhdenii(zadacha)
+        messages.success(request, 'Выполнение подтверждено.')
     elif action == 'na_dorabotku':
         zadacha.otpravit_na_dorabotku()
+        uvedomit_o_dorabotke(zadacha)
         messages.info(request, 'Поручение отправлено на доработку.')
 
     return redirect('detal_zadachi', pk=pk)
+
+
+@login_required
+def uvedomleniya(request):
+    spisok = request.user.uvedomleniya.all()
+    spisok.filter(prochitano=False).update(prochitano=True)
+    return render(request, 'tasks/uvedomleniya.html', {'spisok': spisok})

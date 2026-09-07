@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.utils import timezone
 
@@ -74,7 +73,6 @@ class Zadacha(models.Model):
         return f'{self.zagolovok} ({self.get_status_display()})'
 
     def clean(self):
-        # Руководитель может ставить задачи только сотрудникам своего отдела
         if self.postavil_id and self.ispolnitel_id:
             if self.postavil.rol != self.postavil.ROL_RUKOVODITEL:
                 raise ValidationError('Ставить задачи может только руководитель отдела.')
@@ -82,10 +80,7 @@ class Zadacha(models.Model):
                 raise ValidationError('Исполнитель должен быть сотрудником того же отдела, что и руководитель.')
 
     def prosrochena(self):
-        """Просрочена ли задача"""
         return self.status != self.STATUS_VYPOLNENA and self.srok_vypolneniya < timezone.now().date()
-
-    # --- переходы статуса ---
 
     def prinyat_k_ispolneniyu(self):
         self.status = self.STATUS_PRINYATA
@@ -136,34 +131,6 @@ class Kommentarii(models.Model):
         return f'Комментарий от {self.avtor} к задаче "{self.zadacha.zagolovok}"'
 
 
-class Otsenka(models.Model):
-    """Оценка руководителем выполненной задачи (0-10 баллов)"""
-
-    zadacha = models.OneToOneField(
-        Zadacha,
-        verbose_name='Задача',
-        related_name='otsenka',
-        on_delete=models.CASCADE,
-    )
-    ball = models.PositiveSmallIntegerField(
-        'Балл',
-        validators=[MinValueValidator(0), MaxValueValidator(10)],
-    )
-    kommentarii_rukovoditelya = models.TextField('Комментарий руководителя', blank=True)
-    otsenil = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        verbose_name='Оценил',
-        on_delete=models.PROTECT,
-    )
-    data_otsenki = models.DateTimeField('Дата оценки', auto_now_add=True)
-
-    class Meta:
-        verbose_name = 'Оценка'
-        verbose_name_plural = 'Оценки'
-
-    def __str__(self):
-        return f'Оценка {self.ball}/10 за "{self.zadacha.zagolovok}"'
-
 def put_vlozhenii(instance, filename):
     return f'zadachi/{instance.zadacha_id}/{filename}'
 
@@ -193,3 +160,46 @@ class Vlozhenie(models.Model):
 
     def __str__(self):
         return f'{self.fail.name} ({self.zadacha.zagolovok})'
+
+
+class Uvedomlenie(models.Model):
+    """Внутрисистемное уведомление пользователю"""
+
+    TIP_NOVAYA_ZADACHA = 'novaya_zadacha'
+    TIP_NA_PROVERKE = 'na_proverke'
+    TIP_NA_DORABOTKE = 'na_dorabotke'
+    TIP_PODTVERZHDENO = 'podtverzhdeno'
+    TIP_SROK_BLIZKO = 'srok_blizko'
+
+    TIPY = [
+        (TIP_NOVAYA_ZADACHA, 'Новая задача'),
+        (TIP_NA_PROVERKE, 'Отправлено на проверку'),
+        (TIP_NA_DORABOTKE, 'Отправлено на доработку'),
+        (TIP_PODTVERZHDENO, 'Выполнение подтверждено'),
+        (TIP_SROK_BLIZKO, 'Срок скоро истекает'),
+    ]
+
+    poluchatel = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name='Получатель',
+        related_name='uvedomleniya',
+        on_delete=models.CASCADE,
+    )
+    zadacha = models.ForeignKey(
+        Zadacha,
+        verbose_name='Задача',
+        related_name='uvedomleniya',
+        on_delete=models.CASCADE,
+    )
+    tip = models.CharField('Тип', max_length=30, choices=TIPY)
+    tekst = models.CharField('Текст уведомления', max_length=300)
+    prochitano = models.BooleanField('Прочитано', default=False)
+    data_sozdaniya = models.DateTimeField('Дата', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Уведомление'
+        verbose_name_plural = 'Уведомления'
+        ordering = ['-data_sozdaniya']
+
+    def __str__(self):
+        return f'{self.get_tip_display()} для {self.poluchatel}'

@@ -10,10 +10,6 @@
 <p>Статус: <strong>{{ zadacha.get_status_display }}</strong></p>
 <p>Срок: {{ zadacha.srok_vypolneniya }}{% if zadacha.prosrochena %} — <strong>ПРОСРОЧЕНО</strong>{% endif %}</p>
 
-{% if zadacha.otsenka %}
-    <p>Оценка: {{ zadacha.otsenka.ball }}/10 — {{ zadacha.otsenka.kommentarii_rukovoditelya }}</p>
-{% endif %}
-
 <hr>
 
 {# --- действия сотрудника --- #}
@@ -41,9 +37,8 @@
     <h3>Проверка выполнения</h3>
     <form method="post" action="{% url 'proverit_zadachu' zadacha.pk %}">
         {% csrf_token %}
-        {{ otsenka_form.as_p }}
         <button type="submit" name="action" value="podtverdit">Подтвердить выполнение</button>
-        <button type="submit" name="action" value="na_dorabotku" formnovalidate>Отправить на доработку</button>
+        <button type="submit" name="action" value="na_dorabotku">Отправить на доработку</button>
     </form>
 {% endif %}
 

@@ -3,9 +3,43 @@
 <h1>Мои поручения</h1>
 <p>Пользователь: {{ polzovatel }} — роль: {{ polzovatel.get_rol_display }}</p>
 
+<a href="{% url 'uvedomleniya' %}">🔔 Уведомления {% if neprochitano %}({{ neprochitano }}){% endif %}</a>
+
 {% if polzovatel.is_rukovoditel %}
-    <a href="{% url 'sozdat_zadachu' %}">+ Создать поручение</a>
+    | <a href="{% url 'sozdat_zadachu' %}">+ Создать поручение</a>
 {% endif %}
+
+<hr>
+
+<form method="get">
+    <input type="text" name="poisk" placeholder="Поиск по заголовку..." value="{{ poisk }}">
+
+    <select name="status">
+        <option value="">Все статусы</option>
+        {% for kod, nazvanie in statusy %}
+            <option value="{{ kod }}" {% if status_filtr == kod %}selected{% endif %}>{{ nazvanie }}</option>
+        {% endfor %}
+    </select>
+
+    <select name="prioritet">
+        <option value="">Все приоритеты</option>
+        {% for kod, nazvanie in prioritety %}
+            <option value="{{ kod }}" {% if prioritet_filtr == kod %}selected{% endif %}>{{ nazvanie }}</option>
+        {% endfor %}
+    </select>
+
+    <select name="srok">
+        <option value="">Любой срок</option>
+        <option value="prosrocheno" {% if srok_filtr == 'prosrocheno' %}selected{% endif %}>Просроченные</option>
+        <option value="segodnya" {% if srok_filtr == 'segodnya' %}selected{% endif %}>Срок сегодня</option>
+        <option value="nedelya" {% if srok_filtr == 'nedelya' %}selected{% endif %}>Срок в течение недели</option>
+    </select>
+
+    <button type="submit">Применить</button>
+    <a href="{% url 'dashboard' %}">Сбросить</a>
+</form>
+
+<hr>
 
 <ul>
     {% for zadacha in zadachi %}
@@ -17,7 +51,7 @@
             {% if zadacha.prosrochena %} — <strong>ПРОСРОЧЕНО</strong>{% endif %}
         </li>
     {% empty %}
-        <li>Поручений нет.</li>
+        <li>Поручений по заданным условиям не найдено.</li>
     {% endfor %}
 </ul>
 
