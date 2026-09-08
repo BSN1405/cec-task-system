@@ -63,6 +63,26 @@
     <button type="submit">Прикрепить файл</button>
 </form>
 
+<hr>
+
+<h3>История изменений статуса</h3>
+<table border="1" cellpadding="6">
+    <tr>
+        <th>Было</th>
+        <th>Стало</th>
+        <th>Кто изменил</th>
+        <th>Дата</th>
+    </tr>
+    {% for zapis in zadacha.istoriya.all %}
+        <tr>
+            <td>{{ zapis.get_staryi_status_display|default:"—" }}</td>
+            <td>{{ zapis.get_novyi_status_display }}</td>
+            <td>{{ zapis.izmenil }}</td>
+            <td>{{ zapis.data_izmeneniya }}</td>
+        </tr>
+    {% endfor %}
+</table>
+
 <h3>Комментарии</h3>
 <ul>
     {% for kom in zadacha.kommentarii.all %}

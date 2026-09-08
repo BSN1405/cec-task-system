@@ -82,27 +82,51 @@ class Zadacha(models.Model):
     def prosrochena(self):
         return self.status != self.STATUS_VYPOLNENA and self.srok_vypolneniya < timezone.now().date()
 
-    def prinyat_k_ispolneniyu(self):
+    # --- переходы статуса ---
+
+    def _zapisat_istoriyu(self, staryi_status, izmenil):
+        IstoriyaStatusov.objects.create(
+            zadacha=self,
+            staryi_status=staryi_status,
+            novyi_status=self.status,
+            izmenil=izmenil,
+        )
+
+    def sozdana(self, izmenil):
+        """Вызывается один раз сразу после создания задачи"""
+        self._zapisat_istoriyu('', izmenil)
+
+    def prinyat_k_ispolneniyu(self, izmenil):
+        staryi = self.status
         self.status = self.STATUS_PRINYATA
         self.save(update_fields=['status', 'data_obnovleniya'])
+        self._zapisat_istoriyu(staryi, izmenil)
 
-    def nachat_rabotu(self):
+    def nachat_rabotu(self, izmenil):
+        staryi = self.status
         self.status = self.STATUS_V_RABOTE
         self.save(update_fields=['status', 'data_obnovleniya'])
+        self._zapisat_istoriyu(staryi, izmenil)
 
-    def otpravit_na_proverku(self):
+    def otpravit_na_proverku(self, izmenil):
+        staryi = self.status
         self.status = self.STATUS_NA_PROVERKE
         self.data_vypolneniya = timezone.now()
         self.save(update_fields=['status', 'data_vypolneniya', 'data_obnovleniya'])
+        self._zapisat_istoriyu(staryi, izmenil)
 
-    def podtverdit_vypolnenie(self):
+    def podtverdit_vypolnenie(self, izmenil):
+        staryi = self.status
         self.status = self.STATUS_VYPOLNENA
         self.data_podtverzhdeniya = timezone.now()
         self.save(update_fields=['status', 'data_podtverzhdeniya', 'data_obnovleniya'])
+        self._zapisat_istoriyu(staryi, izmenil)
 
-    def otpravit_na_dorabotku(self):
+    def otpravit_na_dorabotku(self, izmenil):
+        staryi = self.status
         self.status = self.STATUS_NA_DORABOTKE
         self.save(update_fields=['status', 'data_obnovleniya'])
+        self._zapisat_istoriyu(staryi, izmenil)
 
 
 class Kommentarii(models.Model):
@@ -203,3 +227,29 @@ class Uvedomlenie(models.Model):
 
     def __str__(self):
         return f'{self.get_tip_display()} для {self.poluchatel}'
+
+class IstoriyaStatusov(models.Model):
+    """История изменений статуса задачи — кто и когда переводил в какой статус"""
+
+    zadacha = models.ForeignKey(
+        Zadacha,
+        verbose_name='Задача',
+        related_name='istoriya',
+        on_delete=models.CASCADE,
+    )
+    staryi_status = models.CharField('Был статус', max_length=20, choices=Zadacha.STATUSY, blank=True)
+    novyi_status = models.CharField('Стал статус', max_length=20, choices=Zadacha.STATUSY)
+    izmenil = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name='Кто изменил',
+        on_delete=models.PROTECT,
+    )
+    data_izmeneniya = models.DateTimeField('Дата изменения', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Запись истории статуса'
+        verbose_name_plural = 'История статусов'
+        ordering = ['data_izmeneniya']
+
+    def __str__(self):
+        return f'{self.zadacha.zagolovok}: {self.staryi_status or "—"} → {self.novyi_status}'

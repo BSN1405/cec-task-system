@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Zadacha, Kommentarii, Vlozhenie, Uvedomlenie
+from .models import Zadacha, Kommentarii, Vlozhenie, Uvedomlenie, IstoriyaStatusov
 
 
 class KommentariiInline(admin.TabularInline):
@@ -14,13 +14,18 @@ class VlozhenieInline(admin.TabularInline):
     extra = 0
     readonly_fields = ('zagruzil', 'data_zagruzki')
 
+class IstoriyaInline(admin.TabularInline):
+    model = IstoriyaStatusov
+    extra = 0
+    readonly_fields = ('staryi_status', 'novyi_status', 'izmenil', 'data_izmeneniya')
+    can_delete = False
 
 @admin.register(Zadacha)
 class ZadachaAdmin(admin.ModelAdmin):
     list_display = ('zagolovok', 'otdel', 'postavil', 'ispolnitel', 'prioritet', 'status', 'srok_vypolneniya')
     list_filter = ('status', 'prioritet', 'otdel')
     search_fields = ('zagolovok', 'opisanie')
-    inlines = [KommentariiInline, VlozhenieInline]
+    inlines = [KommentariiInline, VlozhenieInline, IstoriyaInline]
 
 
 @admin.register(Kommentarii)
@@ -32,3 +37,4 @@ class KommentariiAdmin(admin.ModelAdmin):
 class UvedomlenieAdmin(admin.ModelAdmin):
     list_display = ('poluchatel', 'tip', 'zadacha', 'prochitano', 'data_sozdaniya')
     list_filter = ('tip', 'prochitano')
+

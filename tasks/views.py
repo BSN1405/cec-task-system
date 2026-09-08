@@ -80,6 +80,7 @@ def sozdat_zadachu(request):
                 form.add_error(None, e)
             else:
                 zadacha.save()
+                zadacha.sozdana(polzovatel)
                 uvedomit_o_novoi_zadache(zadacha)
                 messages.success(request, 'Поручение создано и назначено сотруднику.')
                 return redirect('dashboard')
@@ -149,7 +150,7 @@ def zagruzit_fail(request, pk):
 def prinyat_zadachu(request, pk):
     zadacha = get_object_or_404(Zadacha, pk=pk, ispolnitel=request.user)
     if zadacha.status == Zadacha.STATUS_NOVAYA:
-        zadacha.prinyat_k_ispolneniyu()
+        zadacha.prinyat_k_ispolneniyu(request.user)
         messages.success(request, 'Поручение принято к исполнению.')
     return redirect('detal_zadachi', pk=pk)
 
@@ -158,7 +159,7 @@ def prinyat_zadachu(request, pk):
 def nachat_rabotu(request, pk):
     zadacha = get_object_or_404(Zadacha, pk=pk, ispolnitel=request.user)
     if zadacha.status == Zadacha.STATUS_PRINYATA:
-        zadacha.nachat_rabotu()
+        zadacha.nachat_rabotu(request.user)
         messages.info(request, 'Поручение переведено в статус "В работе".')
     return redirect('detal_zadachi', pk=pk)
 
@@ -167,7 +168,7 @@ def nachat_rabotu(request, pk):
 def otpravit_na_proverku(request, pk):
     zadacha = get_object_or_404(Zadacha, pk=pk, ispolnitel=request.user)
     if zadacha.status in (Zadacha.STATUS_V_RABOTE, Zadacha.STATUS_NA_DORABOTKE):
-        zadacha.otpravit_na_proverku()
+        zadacha.otpravit_na_proverku(request.user)
         uvedomit_o_proverke(zadacha)
         messages.success(request, 'Поручение отправлено руководителю на проверку.')
     return redirect('detal_zadachi', pk=pk)
@@ -182,11 +183,11 @@ def proverit_zadachu(request, pk):
     action = request.POST.get('action')
 
     if action == 'podtverdit':
-        zadacha.podtverdit_vypolnenie()
+        zadacha.podtverdit_vypolnenie(request.user)
         uvedomit_o_podtverzhdenii(zadacha)
         messages.success(request, 'Выполнение подтверждено.')
     elif action == 'na_dorabotku':
-        zadacha.otpravit_na_dorabotku()
+        zadacha.otpravit_na_dorabotku(request.user)
         uvedomit_o_dorabotke(zadacha)
         messages.info(request, 'Поручение отправлено на доработку.')
 
