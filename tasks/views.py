@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.db.models import Count
 
 from .forms import KommentariiForm, ZadachaForm, VlozhenieForm
 from .models import Zadacha
@@ -199,3 +200,38 @@ def uvedomleniya(request):
     spisok = request.user.uvedomleniya.all()
     spisok.filter(prochitano=False).update(prochitano=True)
     return render(request, 'tasks/uvedomleniya.html', {'spisok': spisok})
+
+@login_required
+def statistika(request):
+    polzovatel = request.user
+    if not polzovatel.is_rukovoditel():
+        raise PermissionDenied('Статистика доступна только руководителю отдела.')
+
+    zadachi = Zadacha.objects.filter(postavil=polzovatel, otdel=polzovatel.otdel)
+
+    po_statusu = zadachi.values('status').annotate(kolichestvo=Count('id'))
+    slovar_statusov = dict(Zadacha.STATUSY)
+    statusy_labels = [slovar_statusov[row['status']] for row in po_statusu]
+    statusy_dannye = [row['kolichestvo'] for row in po_statusu]
+
+    po_prioritetu = zadachi.values('prioritet').annotate(kolichestvo=Count('id'))
+    slovar_prioritetov = dict(Zadacha.PRIORITETY)
+    prioritet_labels = [slovar_prioritetov[row['prioritet']] for row in po_prioritetu]
+    prioritet_dannye = [row['kolichestvo'] for row in po_prioritetu]
+
+    vsego = zadachi.count()
+    prosrocheno = zadachi.exclude(status=Zadacha.STATUS_VYPOLNENA).filter(
+        srok_vypolneniya__lt=timezone.now().date()
+    ).count()
+    vypolneno = zadachi.filter(status=Zadacha.STATUS_VYPOLNENA).count()
+
+    context = {
+        'vsego': vsego,
+        'vypolneno': vypolneno,
+        'prosrocheno': prosrocheno,
+        'statusy_labels': statusy_labels,
+        'statusy_dannye': statusy_dannye,
+        'prioritet_labels': prioritet_labels,
+        'prioritet_dannye': prioritet_dannye,
+    }
+    return render(request, 'tasks/statistika.html', context)

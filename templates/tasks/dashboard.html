@@ -3,10 +3,10 @@
 <h1>Мои поручения</h1>
 <p>Пользователь: {{ polzovatel }} — роль: {{ polzovatel.get_rol_display }}</p>
 
-<a href="{% url 'uvedomleniya' %}">🔔 Уведомления {% if neprochitano %}({{ neprochitano }}){% endif %}</a>
-
 {% if polzovatel.is_rukovoditel %}
     | <a href="{% url 'sozdat_zadachu' %}">+ Создать поручение</a>
+    | <a href="{% url 'statistika' %}">Статистика</a>
+      <a href="{% url 'uvedomleniya' %}">🔔 Уведомления {% if neprochitano %}({{ neprochitano }}){% endif %}</a>
 {% endif %}
 
 <hr>

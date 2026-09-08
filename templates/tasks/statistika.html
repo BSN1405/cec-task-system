@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Статистика по отделу</h1>
+
+<p>Всего поручений: <strong>{{ vsego }}</strong></p>
+<p>Выполнено: <strong>{{ vypolneno }}</strong></p>
+<p>Просрочено: <strong>{{ prosrocheno }}</strong></p>
+
+<div style="max-width: 500px;">
+    <h3>По статусам</h3>
+    <canvas id="grafikStatusov"></canvas>
+</div>
+
+<div style="max-width: 500px;">
+    <h3>По приоритетам</h3>
+    <canvas id="grafikPrioritetov"></canvas>
+</div>
+
+{{ statusy_labels|json_script:"statusy-labels" }}
+{{ statusy_dannye|json_script:"statusy-dannye" }}
+{{ prioritet_labels|json_script:"prioritet-labels" }}
+{{ prioritet_dannye|json_script:"prioritet-dannye" }}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    const statusyLabels = JSON.parse(document.getElementById('statusy-labels').textContent);
+    const statusyDannye = JSON.parse(document.getElementById('statusy-dannye').textContent);
+    const prioritetLabels = JSON.parse(document.getElementById('prioritet-labels').textContent);
+    const prioritetDannye = JSON.parse(document.getElementById('prioritet-dannye').textContent);
+
+    new Chart(document.getElementById('grafikStatusov'), {
+        type: 'bar',
+        data: {
+            labels: statusyLabels,
+            datasets: [{
+                label: 'Количество поручений',
+                data: statusyDannye,
+                backgroundColor: '#3d6a8a',
+            }]
+        },
+        options: {
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        }
+    });
+
+    new Chart(document.getElementById('grafikPrioritetov'), {
+        type: 'pie',
+        data: {
+            labels: prioritetLabels,
+            datasets: [{
+                data: prioritetDannye,
+                backgroundColor: ['#7fa8c2', '#3d6a8a', '#1f3b52'],
+            }]
+        }
+    });
+</script>
+
+<a href="{% url 'dashboard' %}">Назад</a>
+{% endblock %}

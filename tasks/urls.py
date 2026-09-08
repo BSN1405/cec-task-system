@@ -11,4 +11,5 @@ urlpatterns = [
     path('zadacha/<int:pk>/proverit/', views.proverit_zadachu, name='proverit_zadachu'),
     path('zadacha/<int:pk>/zagruzit-fail/', views.zagruzit_fail, name='zagruzit_fail'),
     path('uvedomleniya/', views.uvedomleniya, name='uvedomleniya'),
+    path('statistika/', views.statistika, name='statistika'),
 ]
