@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Архив выполненных поручений</h1>
+
+<div class="kartochka">
+    <form method="get">
+        <input type="text" name="poisk" placeholder="Поиск по заголовку..." value="{{ poisk }}" style="width: 300px; display: inline-block;">
+        <button type="submit">Найти</button>
+        <a href="{% url 'arkhiv' %}" class="knopka" style="background-color:#5a6672;">Сбросить</a>
+    </form>
+</div>
+
+<ul class="spisok-zadach">
+    {% for zadacha in zadachi %}
+        <li>
+            <a href="{% url 'detal_zadachi' zadacha.pk %}">{{ zadacha.zagolovok }}</a>
+            <span class="znachok znachok-{{ zadacha.prioritet }}">{{ zadacha.get_prioritet_display }}</span>
+            <div class="meta">
+                Исполнитель: {{ zadacha.ispolnitel.get_full_name|default:zadacha.ispolnitel.username }}
+                — выполнено: {{ zadacha.data_podtverzhdeniya|date:"d.m.Y" }}
+            </div>
+        </li>
+    {% empty %}
+        <li>В архиве пока ничего нет.</li>
+    {% endfor %}
+</ul>
+{% endblock %}

@@ -16,13 +16,16 @@ from reportlab.pdfbase.ttfonts import TTFont
 from xhtml2pdf import pisa
 from xhtml2pdf import default as pisa_default
 
-from .forms import KommentariiForm, ZadachaForm, VlozhenieForm
+from django.db.models import Count, Q
+
+from .forms import KommentariiForm, ZadachaForm, VlozhenieForm, PereznachitForm
 from .models import Zadacha
 from .notifications import (
     uvedomit_o_novoi_zadache,
     uvedomit_o_proverke,
     uvedomit_o_dorabotke,
     uvedomit_o_podtverzhdenii,
+    uvedomit_o_pereznachenii,
 )
 
 def _zaregistrirovat_shrift():
@@ -55,7 +58,9 @@ def dashboard(request):
     else:
         zadachi = Zadacha.objects.filter(ispolnitel=polzovatel)
 
-    # --- фильтры ---
+    # выполненные задачи уходят в архив — на dashboard показываем только активные
+    zadachi = zadachi.exclude(status=Zadacha.STATUS_VYPOLNENA)
+
     status_filtr = request.GET.get('status', '')
     prioritet_filtr = request.GET.get('prioritet', '')
     srok_filtr = request.GET.get('srok', '')
@@ -68,9 +73,7 @@ def dashboard(request):
         zadachi = zadachi.filter(prioritet=prioritet_filtr)
 
     if srok_filtr == 'prosrocheno':
-        zadachi = zadachi.exclude(status=Zadacha.STATUS_VYPOLNENA).filter(
-            srok_vypolneniya__lt=timezone.now().date()
-        )
+        zadachi = zadachi.filter(srok_vypolneniya__lt=timezone.now().date())
     elif srok_filtr == 'segodnya':
         zadachi = zadachi.filter(srok_vypolneniya=timezone.now().date())
     elif srok_filtr == 'nedelya':
@@ -80,6 +83,18 @@ def dashboard(request):
     if poisk:
         zadachi = zadachi.filter(zagolovok__icontains=poisk)
 
+    zagruzhennost = None
+    if polzovatel.is_rukovoditel():
+        zagruzhennost = polzovatel.otdel.sotrudniki.filter(rol='sotrudnik').annotate(
+            aktivnykh=Count(
+                'naznachennye_zadachi',
+                filter=Q(naznachennye_zadachi__postavil=polzovatel) & ~Q(naznachennye_zadachi__status=Zadacha.STATUS_VYPOLNENA),
+            )
+        ).order_by('-aktivnykh')
+
+    # статус "Выполнена" убираем из фильтра — эти задачи теперь в архиве
+    statusy_dlya_filtra = [s for s in Zadacha.STATUSY if s[0] != Zadacha.STATUS_VYPOLNENA]
+
     context = {
         'zadachi': zadachi,
         'polzovatel': polzovatel,
@@ -87,8 +102,9 @@ def dashboard(request):
         'prioritet_filtr': prioritet_filtr,
         'srok_filtr': srok_filtr,
         'poisk': poisk,
-        'statusy': Zadacha.STATUSY,
+        'statusy': statusy_dlya_filtra,
         'prioritety': Zadacha.PRIORITETY,
+        'zagruzhennost': zagruzhennost,
     }
     return render(request, 'tasks/dashboard.html', context)
 
@@ -146,11 +162,16 @@ def detal_zadachi(request, pk):
 
     vlozhenie_form = VlozhenieForm()
 
+    pereznachit_form = None
+    if polzovatel.is_rukovoditel() and zadacha.status != Zadacha.STATUS_VYPOLNENA:
+        pereznachit_form = PereznachitForm(zadacha=zadacha)
+
     context = {
         'zadacha': zadacha,
         'polzovatel': polzovatel,
         'kom_form': kom_form,
         'vlozhenie_form': vlozhenie_form,
+        'pereznachit_form': pereznachit_form,
     }
     return render(request, 'tasks/detal_zadachi.html', context)
 
@@ -334,3 +355,44 @@ def otchet_pdf(request):
     response = HttpResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="otchet.pdf"'
     return response
+
+@login_required
+def arkhiv(request):
+    polzovatel = request.user
+
+    if polzovatel.is_rukovoditel():
+        zadachi = Zadacha.objects.filter(postavil=polzovatel, otdel=polzovatel.otdel, status=Zadacha.STATUS_VYPOLNENA)
+    else:
+        zadachi = Zadacha.objects.filter(ispolnitel=polzovatel, status=Zadacha.STATUS_VYPOLNENA)
+
+    poisk = request.GET.get('poisk', '').strip()
+    if poisk:
+        zadachi = zadachi.filter(zagolovok__icontains=poisk)
+
+    zadachi = zadachi.order_by('-data_podtverzhdeniya')
+
+    context = {'zadachi': zadachi, 'polzovatel': polzovatel, 'poisk': poisk}
+    return render(request, 'tasks/arkhiv.html', context)
+
+@login_required
+def pereznachit_zadachu(request, pk):
+    zadacha = get_object_or_404(Zadacha, pk=pk, postavil=request.user)
+
+    if request.method == 'POST':
+        form = PereznachitForm(request.POST, zadacha=zadacha)
+        if form.is_valid():
+            try:
+                staryi_ispolnitel = zadacha.pereznachit(
+                    form.cleaned_data['novyi_ispolnitel'],
+                    request.user,
+                    form.cleaned_data['prichina'],
+                )
+            except ValidationError as e:
+                messages.error(request, ' '.join(e.messages))
+            else:
+                uvedomit_o_pereznachenii(zadacha, staryi_ispolnitel)
+                messages.success(request, f'Поручение переназначено сотруднику {zadacha.ispolnitel}.')
+        else:
+            messages.error(request, 'Выберите корректного нового исполнителя.')
+
+    return redirect('detal_zadachi', pk=pk)

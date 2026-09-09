@@ -14,4 +14,6 @@ urlpatterns = [
     path('statistika/', views.statistika, name='statistika'),
     path('otchet/', views.otchet, name='otchet'),
     path('otchet/pdf/', views.otchet_pdf, name='otchet_pdf'),
+    path('arkhiv/', views.arkhiv, name='arkhiv'),
+    path('zadacha/<int:pk>/pereznachit/', views.pereznachit_zadachu, name='pereznachit_zadachu'),
 ]

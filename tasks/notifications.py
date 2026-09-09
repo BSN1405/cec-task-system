@@ -35,3 +35,18 @@ def uvedomit_o_podtverzhdenii(zadacha):
         tip=Uvedomlenie.TIP_PODTVERZHDENO,
         tekst=f'Выполнение поручения "{zadacha.zagolovok}" подтверждено',
     )
+
+def uvedomit_o_pereznachenii(zadacha, staryi_ispolnitel):
+    Uvedomlenie.objects.create(
+        poluchatel=zadacha.ispolnitel,
+        zadacha=zadacha,
+        tip=Uvedomlenie.TIP_NOVAYA_ZADACHA,
+        tekst=f'Вам передано поручение: "{zadacha.zagolovok}" (переназначено с сотрудника {staryi_ispolnitel})',
+    )
+    if staryi_ispolnitel:
+        Uvedomlenie.objects.create(
+            poluchatel=staryi_ispolnitel,
+            zadacha=zadacha,
+            tip=Uvedomlenie.TIP_PEREZNACHENO,
+            tekst=f'Поручение "{zadacha.zagolovok}" передано другому сотруднику',
+        )

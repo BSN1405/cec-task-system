@@ -2,6 +2,24 @@
 {% block content %}
 <h1>Мои поручения</h1>
 
+{% if zagruzhennost %}
+<div class="kartochka">
+    <h3>Загруженность сотрудников</h3>
+    <table>
+        <tr>
+            <th>Сотрудник</th>
+            <th>Активных поручений</th>
+        </tr>
+        {% for s in zagruzhennost %}
+        <tr>
+            <td>{{ s.get_full_name|default:s.username }}</td>
+            <td>{{ s.aktivnykh }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endif %}
+
 <div class="kartochka">
     <form method="get">
         <input type="text" name="poisk" placeholder="Поиск по заголовку..." value="{{ poisk }}" style="width: 260px; display: inline-block;">

@@ -51,6 +51,17 @@
     </div>
 {% endif %}
 
+{% if pereznachit_form %}
+    <div class="kartochka">
+        <h3>Переназначить исполнителя</h3>
+        <form method="post" action="{% url 'pereznachit_zadachu' zadacha.pk %}">
+            {% csrf_token %}
+            {{ pereznachit_form.as_p }}
+            <button type="submit">Переназначить</button>
+        </form>
+    </div>
+{% endif %}
+
 <div class="kartochka">
     <h3>Вложения</h3>
     <ul class="spisok-zadach">
@@ -90,6 +101,30 @@
         {% endfor %}
     </table>
 </div>
+
+{% if zadacha.istoriya_naznacheniy.all %}
+<div class="kartochka">
+    <h3>История переназначений</h3>
+    <table>
+        <tr>
+            <th>Было</th>
+            <th>Стало</th>
+            <th>Кто переназначил</th>
+            <th>Причина</th>
+            <th>Дата</th>
+        </tr>
+        {% for zapis in zadacha.istoriya_naznacheniy.all %}
+            <tr>
+                <td>{{ zapis.staryi_ispolnitel|default:"—" }}</td>
+                <td>{{ zapis.novyi_ispolnitel }}</td>
+                <td>{{ zapis.izmenil }}</td>
+                <td>{{ zapis.prichina|default:"—" }}</td>
+                <td>{{ zapis.data_izmeneniya }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endif %}
 
 <div class="kartochka">
     <h3>Комментарии</h3>

@@ -44,3 +44,22 @@ class VlozhenieForm(forms.ModelForm):
             'fail': 'Файл',
             'opisanie': 'Описание (необязательно)',
         }
+
+
+class PereznachitForm(forms.Form):
+    novyi_ispolnitel = forms.ModelChoiceField(
+        queryset=None,
+        label='Новый исполнитель',
+    )
+    prichina = forms.CharField(
+        label='Причина (необязательно)',
+        required=False,
+        widget=forms.Textarea(attrs={'rows': 2}),
+    )
+
+    def __init__(self, *args, zadacha=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if zadacha is not None:
+            self.fields['novyi_ispolnitel'].queryset = zadacha.otdel.sotrudniki.filter(
+                rol='sotrudnik'
+            ).exclude(id=zadacha.ispolnitel_id)

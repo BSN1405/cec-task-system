@@ -17,6 +17,7 @@
     {% if user.is_authenticated %}
     <nav class="menyu">
         <a href="{% url 'dashboard' %}">Мои поручения</a>
+        <a href="{% url 'arkhiv' %}">Архив</a>
         <a href="{% url 'uvedomleniya' %}">Уведомления {% if neprochitano %}({{ neprochitano }}){% endif %}</a>
         {% if user.is_rukovoditel %}
             <a href="{% url 'sozdat_zadachu' %}">Создать поручение</a>

@@ -128,6 +128,33 @@ class Zadacha(models.Model):
         self.save(update_fields=['status', 'data_obnovleniya'])
         self._zapisat_istoriyu(staryi, izmenil)
 
+    def pereznachit(self, novyi_ispolnitel, izmenil, prichina=''):
+        """Передаёт задачу другому сотруднику того же отдела, сбрасывая статус в 'Новая'"""
+        if self.status == self.STATUS_VYPOLNENA:
+            raise ValidationError('Нельзя переназначить уже выполненное поручение.')
+        if novyi_ispolnitel.otdel_id != self.otdel_id or novyi_ispolnitel.rol != novyi_ispolnitel.ROL_SOTRUDNIK:
+            raise ValidationError('Новый исполнитель должен быть сотрудником того же отдела.')
+        if novyi_ispolnitel.id == self.ispolnitel_id:
+            raise ValidationError('Этот сотрудник уже является исполнителем данной задачи.')
+
+        staryi_ispolnitel = self.ispolnitel
+        staryi_status = self.status
+
+        IstoriyaNaznacheniya.objects.create(
+            zadacha=self,
+            staryi_ispolnitel=staryi_ispolnitel,
+            novyi_ispolnitel=novyi_ispolnitel,
+            izmenil=izmenil,
+            prichina=prichina,
+        )
+
+        self.ispolnitel = novyi_ispolnitel
+        self.status = self.STATUS_NOVAYA
+        self.save(update_fields=['ispolnitel', 'status', 'data_obnovleniya'])
+        self._zapisat_istoriyu(staryi_status, izmenil)
+
+        return staryi_ispolnitel
+
 
 class Kommentarii(models.Model):
     """Комментарий к задаче (переписка руководителя и сотрудника по ходу работы)"""
@@ -194,6 +221,7 @@ class Uvedomlenie(models.Model):
     TIP_NA_DORABOTKE = 'na_dorabotke'
     TIP_PODTVERZHDENO = 'podtverzhdeno'
     TIP_SROK_BLIZKO = 'srok_blizko'
+    TIP_PEREZNACHENO = 'pereznacheno'
 
     TIPY = [
         (TIP_NOVAYA_ZADACHA, 'Новая задача'),
@@ -201,6 +229,7 @@ class Uvedomlenie(models.Model):
         (TIP_NA_DORABOTKE, 'Отправлено на доработку'),
         (TIP_PODTVERZHDENO, 'Выполнение подтверждено'),
         (TIP_SROK_BLIZKO, 'Срок скоро истекает'),
+        (TIP_PEREZNACHENO, 'Поручение переназначено'),
     ]
 
     poluchatel = models.ForeignKey(
@@ -253,3 +282,42 @@ class IstoriyaStatusov(models.Model):
 
     def __str__(self):
         return f'{self.zadacha.zagolovok}: {self.staryi_status or "—"} → {self.novyi_status}'
+
+class IstoriyaNaznacheniya(models.Model):
+    """История переназначений задачи другому исполнителю"""
+
+    zadacha = models.ForeignKey(
+        Zadacha,
+        verbose_name='Задача',
+        related_name='istoriya_naznacheniy',
+        on_delete=models.CASCADE,
+    )
+    staryi_ispolnitel = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name='Был исполнитель',
+        related_name='+',
+        on_delete=models.SET_NULL,
+        null=True,
+    )
+    novyi_ispolnitel = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name='Стал исполнитель',
+        related_name='+',
+        on_delete=models.CASCADE,
+    )
+    izmenil = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name='Кто переназначил',
+        related_name='+',
+        on_delete=models.PROTECT,
+    )
+    prichina = models.CharField('Причина переназначения', max_length=300, blank=True)
+    data_izmeneniya = models.DateTimeField('Дата', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Запись переназначения'
+        verbose_name_plural = 'История переназначений'
+        ordering = ['data_izmeneniya']
+
+    def __str__(self):
+        return f'{self.zadacha.zagolovok}: {self.staryi_ispolnitel} → {self.novyi_ispolnitel}'
