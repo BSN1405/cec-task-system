@@ -2,101 +2,111 @@
 {% block content %}
 <h1>{{ zadacha.zagolovok }}</h1>
 
-<p>{{ zadacha.opisanie }}</p>
-<p>Отдел: {{ zadacha.otdel }}</p>
-<p>Поставил: {{ zadacha.postavil }}</p>
-<p>Исполнитель: {{ zadacha.ispolnitel }}</p>
-<p>Приоритет: {{ zadacha.get_prioritet_display }}</p>
-<p>Статус: <strong>{{ zadacha.get_status_display }}</strong></p>
-<p>Срок: {{ zadacha.srok_vypolneniya }}{% if zadacha.prosrochena %} — <strong>ПРОСРОЧЕНО</strong>{% endif %}</p>
+<div class="kartochka">
+    <p>{{ zadacha.opisanie }}</p>
+    <p><strong>Отдел:</strong> {{ zadacha.otdel }}</p>
+    <p><strong>Поставил:</strong> {{ zadacha.postavil }}</p>
+    <p><strong>Исполнитель:</strong> {{ zadacha.ispolnitel }}</p>
+    <p><strong>Приоритет:</strong> <span class="znachok znachok-{{ zadacha.prioritet }}">{{ zadacha.get_prioritet_display }}</span></p>
+    <p><strong>Статус:</strong> {{ zadacha.get_status_display }}</p>
+    <p>
+        <strong>Срок:</strong> {{ zadacha.srok_vypolneniya }}
+        {% if zadacha.prosrochena %} <span class="prosrocheno">ПРОСРОЧЕНО</span>{% endif %}
+    </p>
+</div>
 
-<hr>
-
-{# --- действия сотрудника --- #}
 {% if not polzovatel.is_rukovoditel %}
     {% if zadacha.status == 'novaya' %}
-        <form method="post" action="{% url 'prinyat_zadachu' zadacha.pk %}">
-            {% csrf_token %}
-            <button type="submit">Принять к исполнению</button>
-        </form>
+        <div class="kartochka">
+            <form method="post" action="{% url 'prinyat_zadachu' zadacha.pk %}">
+                {% csrf_token %}
+                <button type="submit">Принять к исполнению</button>
+            </form>
+        </div>
     {% elif zadacha.status == 'prinyata' %}
-        <form method="post" action="{% url 'nachat_rabotu' zadacha.pk %}">
-            {% csrf_token %}
-            <button type="submit">Начать работу</button>
-        </form>
+        <div class="kartochka">
+            <form method="post" action="{% url 'nachat_rabotu' zadacha.pk %}">
+                {% csrf_token %}
+                <button type="submit">Начать работу</button>
+            </form>
+        </div>
     {% elif zadacha.status == 'v_rabote' or zadacha.status == 'na_dorabotke' %}
-        <form method="post" action="{% url 'otpravit_na_proverku' zadacha.pk %}">
-            {% csrf_token %}
-            <button type="submit">Отправить на проверку</button>
-        </form>
+        <div class="kartochka">
+            <form method="post" action="{% url 'otpravit_na_proverku' zadacha.pk %}">
+                {% csrf_token %}
+                <button type="submit">Отправить на проверку</button>
+            </form>
+        </div>
     {% endif %}
 {% endif %}
 
-{# --- действия руководителя --- #}
 {% if polzovatel.is_rukovoditel and zadacha.status == 'na_proverke' %}
-    <h3>Проверка выполнения</h3>
-    <form method="post" action="{% url 'proverit_zadachu' zadacha.pk %}">
-        {% csrf_token %}
-        <button type="submit" name="action" value="podtverdit">Подтвердить выполнение</button>
-        <button type="submit" name="action" value="na_dorabotku">Отправить на доработку</button>
-    </form>
+    <div class="kartochka">
+        <h3>Проверка выполнения</h3>
+        <form method="post" action="{% url 'proverit_zadachu' zadacha.pk %}">
+            {% csrf_token %}
+            <button type="submit" name="action" value="podtverdit">Подтвердить выполнение</button>
+            <button type="submit" name="action" value="na_dorabotku" style="background-color:#a83232;">Отправить на доработку</button>
+        </form>
+    </div>
 {% endif %}
 
-<hr>
+<div class="kartochka">
+    <h3>Вложения</h3>
+    <ul class="spisok-zadach">
+        {% for v in zadacha.vlozheniya.all %}
+            <li>
+                <a href="{{ v.fail.url }}" target="_blank">{{ v.fail.name|cut:"zadachi/" }}</a>
+                <div class="meta">загрузил {{ v.zagruzil }} ({{ v.data_zagruzki }}){% if v.opisanie %} — {{ v.opisanie }}{% endif %}</div>
+            </li>
+        {% empty %}
+            <li>Файлов пока нет.</li>
+        {% endfor %}
+    </ul>
 
-<h3>Вложения</h3>
-<ul>
-    {% for v in zadacha.vlozheniya.all %}
-        <li>
-            <a href="{{ v.fail.url }}" target="_blank">{{ v.fail.name|cut:"zadachi/" }}</a>
-            — загрузил {{ v.zagruzil }} ({{ v.data_zagruzki }})
-            {% if v.opisanie %} — {{ v.opisanie }}{% endif %}
-        </li>
-    {% empty %}
-        <li>Файлов пока нет.</li>
-    {% endfor %}
-</ul>
+    <form method="post" action="{% url 'zagruzit_fail' zadacha.pk %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ vlozhenie_form.as_p }}
+        <button type="submit">Прикрепить файл</button>
+    </form>
+</div>
 
-<form method="post" action="{% url 'zagruzit_fail' zadacha.pk %}" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ vlozhenie_form.as_p }}
-    <button type="submit">Прикрепить файл</button>
-</form>
-
-<hr>
-
-<h3>История изменений статуса</h3>
-<table border="1" cellpadding="6">
-    <tr>
-        <th>Было</th>
-        <th>Стало</th>
-        <th>Кто изменил</th>
-        <th>Дата</th>
-    </tr>
-    {% for zapis in zadacha.istoriya.all %}
+<div class="kartochka">
+    <h3>История изменений статуса</h3>
+    <table>
         <tr>
-            <td>{{ zapis.get_staryi_status_display|default:"—" }}</td>
-            <td>{{ zapis.get_novyi_status_display }}</td>
-            <td>{{ zapis.izmenil }}</td>
-            <td>{{ zapis.data_izmeneniya }}</td>
+            <th>Было</th>
+            <th>Стало</th>
+            <th>Кто изменил</th>
+            <th>Дата</th>
         </tr>
-    {% endfor %}
-</table>
+        {% for zapis in zadacha.istoriya.all %}
+            <tr>
+                <td>{{ zapis.get_staryi_status_display|default:"—" }}</td>
+                <td>{{ zapis.get_novyi_status_display }}</td>
+                <td>{{ zapis.izmenil }}</td>
+                <td>{{ zapis.data_izmeneniya }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+</div>
 
-<h3>Комментарии</h3>
-<ul>
-    {% for kom in zadacha.kommentarii.all %}
-        <li><strong>{{ kom.avtor }}</strong> ({{ kom.data_sozdaniya }}): {{ kom.tekst }}</li>
-    {% empty %}
-        <li>Комментариев пока нет.</li>
-    {% endfor %}
-</ul>
+<div class="kartochka">
+    <h3>Комментарии</h3>
+    <ul class="spisok-zadach">
+        {% for kom in zadacha.kommentarii.all %}
+            <li><strong>{{ kom.avtor }}</strong> <span class="meta">({{ kom.data_sozdaniya }})</span><br>{{ kom.tekst }}</li>
+        {% empty %}
+            <li>Комментариев пока нет.</li>
+        {% endfor %}
+    </ul>
 
-<form method="post">
-    {% csrf_token %}
-    {{ kom_form.as_p }}
-    <button type="submit">Добавить комментарий</button>
-</form>
+    <form method="post">
+        {% csrf_token %}
+        {{ kom_form.as_p }}
+        <button type="submit">Добавить комментарий</button>
+    </form>
+</div>
 
-<a href="{% url 'dashboard' %}">Назад</a>
+<a href="{% url 'dashboard' %}" class="knopka" style="background-color:#5a6672;">Назад</a>
 {% endblock %}

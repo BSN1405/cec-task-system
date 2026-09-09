@@ -2,11 +2,12 @@
 {% block content %}
 <h1>Новое служебное поручение</h1>
 
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Создать</button>
-</form>
-
-<a href="{% url 'dashboard' %}">Назад</a>
+<div class="kartochka">
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Создать</button>
+        <a href="{% url 'dashboard' %}" class="knopka" style="background-color:#5a6672;">Отмена</a>
+    </form>
+</div>
 {% endblock %}

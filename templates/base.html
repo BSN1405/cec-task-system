@@ -1,17 +1,52 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>ЦИК КР — Служебные поручения</title>
+    <title>{% block title %}ЦИК КР — Служебные поручения{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
-    {% if messages %}
-        <ul>
-        {% for message in messages %}
-            <li>{{ message }}</li>
-        {% endfor %}
-        </ul>
+    <header class="shapka">
+        <a href="{% url 'dashboard' %}" class="nazvanie">
+            Центральная комиссия по выборам и проведению референдумов КР
+            <span class="podzagolovok">Информационная система управления служебными поручениями</span>
+        </a>
+    </header>
+
+    {% if user.is_authenticated %}
+    <nav class="menyu">
+        <a href="{% url 'dashboard' %}">Мои поручения</a>
+        <a href="{% url 'uvedomleniya' %}">Уведомления {% if neprochitano %}({{ neprochitano }}){% endif %}</a>
+        {% if user.is_rukovoditel %}
+            <a href="{% url 'sozdat_zadachu' %}">Создать поручение</a>
+            <a href="{% url 'statistika' %}">Статистика</a>
+            <a href="{% url 'otchet' %}">Отчёт</a>
+        {% endif %}
+        <span class="polzovatel-info">
+            {{ user.get_full_name|default:user.username }} — {{ user.get_rol_display }}
+            | <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" style="background:none; border:none; color:#f0c0c0; text-decoration:underline; cursor:pointer; padding:0; font-size:inherit;">Выйти</button>
+            </form>
+        </span>
+    </nav>
     {% endif %}
-    {% block content %}{% endblock %}
+
+    <main class="soderzhimoe">
+        {% if messages %}
+            <ul class="soobshcheniya">
+            {% for message in messages %}
+                <li class="{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="podval">
+        ЦИК Кыргызской Республики — Информационная система служебных поручений (учебный демонстрационный проект)
+    </footer>
 </body>
 </html>

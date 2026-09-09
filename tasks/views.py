@@ -1,19 +1,49 @@
+from datetime import datetime
+from io import BytesIO
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.shortcuts import get_object_or_404, redirect, render
-from django.utils import timezone
 from django.db.models import Count
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
+from django.utils import timezone
+from django.conf import settings
+
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from xhtml2pdf import pisa
+from xhtml2pdf import default as pisa_default
 
 from .forms import KommentariiForm, ZadachaForm, VlozhenieForm
 from .models import Zadacha
-
 from .notifications import (
     uvedomit_o_novoi_zadache,
     uvedomit_o_proverke,
     uvedomit_o_dorabotke,
     uvedomit_o_podtverzhdenii,
 )
+
+def _zaregistrirovat_shrift():
+    """Регистрирует шрифт с поддержкой кириллицы и подменяет шрифт по умолчанию для xhtml2pdf"""
+    if 'ArialCyr' in pdfmetrics.getRegisteredFontNames():
+        return
+
+    put_k_shriftam = settings.STATICFILES_DIRS[0] / 'fonts'
+    pdfmetrics.registerFont(TTFont('ArialCyr', str(put_k_shriftam / 'arial.ttf')))
+    pdfmetrics.registerFont(TTFont('ArialCyr-Bold', str(put_k_shriftam / 'arial-bold.ttf')))
+    pdfmetrics.registerFontFamily(
+        'ArialCyr',
+        normal='ArialCyr',
+        bold='ArialCyr-Bold',
+        italic='ArialCyr',
+        boldItalic='ArialCyr-Bold',
+    )
+
+    for imya in ('helvetica', 'arial', 'sans-serif', 'times', 'times new roman', 'courier'):
+        pisa_default.DEFAULT_FONT[imya] = 'ArialCyr'
+
 
 
 @login_required
@@ -235,3 +265,72 @@ def statistika(request):
         'prioritet_dannye': prioritet_dannye,
     }
     return render(request, 'tasks/statistika.html', context)
+
+def _sobrat_otchet(request):
+    """Общая логика фильтрации — используется и для HTML-страницы, и для PDF"""
+    polzovatel = request.user
+
+    zadachi = Zadacha.objects.filter(postavil=polzovatel, otdel=polzovatel.otdel)
+
+    data_ot = request.GET.get('data_ot', '')
+    data_do = request.GET.get('data_do', '')
+    sotrudnik_id = request.GET.get('sotrudnik', '')
+
+    if data_ot:
+        zadachi = zadachi.filter(data_sozdaniya__date__gte=datetime.strptime(data_ot, '%Y-%m-%d').date())
+    if data_do:
+        zadachi = zadachi.filter(data_sozdaniya__date__lte=datetime.strptime(data_do, '%Y-%m-%d').date())
+    if sotrudnik_id:
+        zadachi = zadachi.filter(ispolnitel_id=sotrudnik_id)
+
+    zadachi = zadachi.select_related('ispolnitel').order_by('ispolnitel__last_name', '-data_sozdaniya')
+
+    return zadachi, data_ot, data_do, sotrudnik_id
+
+
+@login_required
+def otchet(request):
+    polzovatel = request.user
+    if not polzovatel.is_rukovoditel():
+        raise PermissionDenied('Отчёт доступен только руководителю отдела.')
+
+    zadachi, data_ot, data_do, sotrudnik_id = _sobrat_otchet(request)
+    sotrudniki = polzovatel.otdel.sotrudniki.filter(rol='sotrudnik')
+
+    context = {
+        'zadachi': zadachi,
+        'sotrudniki': sotrudniki,
+        'data_ot': data_ot,
+        'data_do': data_do,
+        'sotrudnik_id': sotrudnik_id,
+        'polzovatel': polzovatel,
+    }
+    return render(request, 'tasks/otchet.html', context)
+
+
+@login_required
+def otchet_pdf(request):
+    polzovatel = request.user
+    if not polzovatel.is_rukovoditel():
+        raise PermissionDenied('Отчёт доступен только руководителю отдела.')
+
+    _zaregistrirovat_shrift()
+
+    zadachi, data_ot, data_do, sotrudnik_id = _sobrat_otchet(request)
+
+    context = {
+        'zadachi': zadachi,
+        'polzovatel': polzovatel,
+        'data_ot': data_ot,
+        'data_do': data_do,
+        'segodnya': timezone.now().date(),
+    }
+    html = render_to_string('tasks/otchet_pdf.html', context)
+
+    buffer = BytesIO()
+    pisa.CreatePDF(html, dest=buffer)
+    buffer.seek(0)
+
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="otchet.pdf"'
+    return response

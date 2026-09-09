@@ -1,59 +1,49 @@
 {% extends 'base.html' %}
 {% block content %}
 <h1>Мои поручения</h1>
-<p>Пользователь: {{ polzovatel }} — роль: {{ polzovatel.get_rol_display }}</p>
 
-{% if polzovatel.is_rukovoditel %}
-    | <a href="{% url 'sozdat_zadachu' %}">+ Создать поручение</a>
-    | <a href="{% url 'statistika' %}">Статистика</a>
-      <a href="{% url 'uvedomleniya' %}">🔔 Уведомления {% if neprochitano %}({{ neprochitano }}){% endif %}</a>
-{% endif %}
+<div class="kartochka">
+    <form method="get">
+        <input type="text" name="poisk" placeholder="Поиск по заголовку..." value="{{ poisk }}" style="width: 260px; display: inline-block;">
 
-<hr>
+        <select name="status" style="width: auto; display: inline-block;">
+            <option value="">Все статусы</option>
+            {% for kod, nazvanie in statusy %}
+                <option value="{{ kod }}" {% if status_filtr == kod %}selected{% endif %}>{{ nazvanie }}</option>
+            {% endfor %}
+        </select>
 
-<form method="get">
-    <input type="text" name="poisk" placeholder="Поиск по заголовку..." value="{{ poisk }}">
+        <select name="prioritet" style="width: auto; display: inline-block;">
+            <option value="">Все приоритеты</option>
+            {% for kod, nazvanie in prioritety %}
+                <option value="{{ kod }}" {% if prioritet_filtr == kod %}selected{% endif %}>{{ nazvanie }}</option>
+            {% endfor %}
+        </select>
 
-    <select name="status">
-        <option value="">Все статусы</option>
-        {% for kod, nazvanie in statusy %}
-            <option value="{{ kod }}" {% if status_filtr == kod %}selected{% endif %}>{{ nazvanie }}</option>
-        {% endfor %}
-    </select>
+        <select name="srok" style="width: auto; display: inline-block;">
+            <option value="">Любой срок</option>
+            <option value="prosrocheno" {% if srok_filtr == 'prosrocheno' %}selected{% endif %}>Просроченные</option>
+            <option value="segodnya" {% if srok_filtr == 'segodnya' %}selected{% endif %}>Срок сегодня</option>
+            <option value="nedelya" {% if srok_filtr == 'nedelya' %}selected{% endif %}>Срок в течение недели</option>
+        </select>
 
-    <select name="prioritet">
-        <option value="">Все приоритеты</option>
-        {% for kod, nazvanie in prioritety %}
-            <option value="{{ kod }}" {% if prioritet_filtr == kod %}selected{% endif %}>{{ nazvanie }}</option>
-        {% endfor %}
-    </select>
+        <button type="submit">Применить</button>
+        <a href="{% url 'dashboard' %}" class="knopka" style="background-color:#5a6672;">Сбросить</a>
+    </form>
+</div>
 
-    <select name="srok">
-        <option value="">Любой срок</option>
-        <option value="prosrocheno" {% if srok_filtr == 'prosrocheno' %}selected{% endif %}>Просроченные</option>
-        <option value="segodnya" {% if srok_filtr == 'segodnya' %}selected{% endif %}>Срок сегодня</option>
-        <option value="nedelya" {% if srok_filtr == 'nedelya' %}selected{% endif %}>Срок в течение недели</option>
-    </select>
-
-    <button type="submit">Применить</button>
-    <a href="{% url 'dashboard' %}">Сбросить</a>
-</form>
-
-<hr>
-
-<ul>
+<ul class="spisok-zadach">
     {% for zadacha in zadachi %}
         <li>
             <a href="{% url 'detal_zadachi' zadacha.pk %}">{{ zadacha.zagolovok }}</a>
-            — {{ zadacha.get_status_display }}
-            — приоритет: {{ zadacha.get_prioritet_display }}
-            — срок: {{ zadacha.srok_vypolneniya }}
-            {% if zadacha.prosrochena %} — <strong>ПРОСРОЧЕНО</strong>{% endif %}
+            <span class="znachok znachok-{{ zadacha.prioritet }}">{{ zadacha.get_prioritet_display }}</span>
+            <div class="meta">
+                {{ zadacha.get_status_display }} — срок: {{ zadacha.srok_vypolneniya }}
+                {% if zadacha.prosrochena %} <span class="prosrocheno">ПРОСРОЧЕНО</span>{% endif %}
+            </div>
         </li>
     {% empty %}
         <li>Поручений по заданным условиям не найдено.</li>
     {% endfor %}
 </ul>
-
-<a href="{% url 'logout' %}">Выйти</a>
 {% endblock %}

@@ -6,20 +6,20 @@
         <p class="login-subtitle">Информационная система управления служебными поручениями</p>
 
         {% if form.errors %}
-            <div class="alert alert-error">Неверный логин или пароль.</div>
+            <div class="alert-error">Неверный логин или пароль.</div>
         {% endif %}
 
         <form method="post">
             {% csrf_token %}
-            <div class="form-group">
+            <p>
                 <label for="id_username">Логин</label>
                 <input type="text" name="username" id="id_username" required autofocus>
-            </div>
-            <div class="form-group">
+            </p>
+            <p>
                 <label for="id_password">Пароль</label>
                 <input type="password" name="password" id="id_password" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Войти</button>
+            </p>
+            <button type="submit" class="knopka">Войти</button>
             <input type="hidden" name="next" value="{{ next }}">
         </form>
     </div>

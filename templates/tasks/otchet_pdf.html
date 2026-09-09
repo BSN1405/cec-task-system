@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 11px; }
+        h1 { font-size: 16px; text-align: center; }
+        p.podzagolovok { text-align: center; font-size: 12px; margin-top: 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #333; padding: 5px; text-align: left; }
+        th { background-color: #dddddd; font-weight: bold; }
+        p.podpis { margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <h1>Центральная комиссия по выборам и проведению референдумов КР</h1>
+    <p class="podzagolovok">
+        Отчёт по служебным поручениям отдела «{{ polzovatel.otdel }}»<br>
+        {% if data_ot %}с {{ data_ot }}{% endif %} {% if data_do %}по {{ data_do }}{% endif %}
+    </p>
+
+    <table>
+        <tr>
+            <th>Заголовок</th>
+            <th>Исполнитель</th>
+            <th>Приоритет</th>
+            <th>Статус</th>
+            <th>Поставлена</th>
+            <th>Срок</th>
+        </tr>
+        {% for zadacha in zadachi %}
+        <tr>
+            <td>{{ zadacha.zagolovok }}</td>
+            <td>{{ zadacha.ispolnitel.get_full_name|default:zadacha.ispolnitel.username }}</td>
+            <td>{{ zadacha.get_prioritet_display }}</td>
+            <td>{{ zadacha.get_status_display }}</td>
+            <td>{{ zadacha.data_sozdaniya|date:"d.m.Y" }}</td>
+            <td>{{ zadacha.srok_vypolneniya|date:"d.m.Y" }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <p class="podpis">
+        Руководитель отдела: {{ polzovatel.get_full_name }} _______________ <br>
+        Дата формирования отчёта: {{ segodnya|date:"d.m.Y" }}
+    </p>
+</body>
+</html>

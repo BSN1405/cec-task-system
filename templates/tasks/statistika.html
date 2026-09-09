@@ -2,18 +2,29 @@
 {% block content %}
 <h1>Статистика по отделу</h1>
 
-<p>Всего поручений: <strong>{{ vsego }}</strong></p>
-<p>Выполнено: <strong>{{ vypolneno }}</strong></p>
-<p>Просрочено: <strong>{{ prosrocheno }}</strong></p>
+<div class="kartochka" style="display:flex; gap: 40px;">
+    <div>
+        <div class="meta">Всего поручений</div>
+        <div style="font-size: 28px; font-weight: 600; color: var(--tsvet-osnovnoi);">{{ vsego }}</div>
+    </div>
+    <div>
+        <div class="meta">Выполнено</div>
+        <div style="font-size: 28px; font-weight: 600; color: var(--tsvet-uspeh);">{{ vypolneno }}</div>
+    </div>
+    <div>
+        <div class="meta">Просрочено</div>
+        <div style="font-size: 28px; font-weight: 600; color: var(--tsvet-oshibka);">{{ prosrocheno }}</div>
+    </div>
+</div>
 
-<div style="max-width: 500px;">
+<div class="kartochka">
     <h3>По статусам</h3>
     <canvas id="grafikStatusov"></canvas>
 </div>
 
-<div style="max-width: 500px;">
+<div class="kartochka">
     <h3>По приоритетам</h3>
-    <canvas id="grafikPrioritetov"></canvas>
+    <canvas id="grafikPrioritetov" style="max-height: 320px;"></canvas>
 </div>
 
 {{ statusy_labels|json_script:"statusy-labels" }}
@@ -35,7 +46,7 @@
             datasets: [{
                 label: 'Количество поручений',
                 data: statusyDannye,
-                backgroundColor: '#3d6a8a',
+                backgroundColor: '#1f3b52',
             }]
         },
         options: {
@@ -49,11 +60,11 @@
             labels: prioritetLabels,
             datasets: [{
                 data: prioritetDannye,
-                backgroundColor: ['#7fa8c2', '#3d6a8a', '#1f3b52'],
+                backgroundColor: ['#2e7d4f', '#b8860b', '#a83232'],
             }]
         }
     });
 </script>
 
-<a href="{% url 'dashboard' %}">Назад</a>
+<a href="{% url 'dashboard' %}" class="knopka" style="background-color:#5a6672;">Назад</a>
 {% endblock %}
