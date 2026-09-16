@@ -16,4 +16,5 @@ urlpatterns = [
     path('otchet/pdf/', views.otchet_pdf, name='otchet_pdf'),
     path('arkhiv/', views.arkhiv, name='arkhiv'),
     path('zadacha/<int:pk>/pereznachit/', views.pereznachit_zadachu, name='pereznachit_zadachu'),
+    path('vlozhenie/<int:pk>/udalit/', views.udalit_vlozhenie, name='udalit_vlozhenie'),
 ]

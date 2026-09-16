@@ -3,6 +3,8 @@ from .models import Zadacha, Kommentarii, Vlozhenie
 
 
 class ZadachaForm(forms.ModelForm):
+    fail = forms.FileField(label='Прикрепить файл (необязательно)', required=False)
+
     class Meta:
         model = Zadacha
         fields = ['zagolovok', 'opisanie', 'ispolnitel', 'prioritet', 'srok_vypolneniya']
@@ -21,9 +23,16 @@ class ZadachaForm(forms.ModelForm):
     def __init__(self, *args, rukovoditel=None, **kwargs):
         super().__init__(*args, **kwargs)
         if rukovoditel is not None and rukovoditel.otdel_id:
-            self.fields['ispolnitel'].queryset = rukovoditel.otdel.sotrudniki.filter(
-                rol='sotrudnik'
-            )
+            sotrudniki = rukovoditel.otdel.sotrudniki.filter(rol='sotrudnik')
+            self.fields['ispolnitel'].queryset = sotrudniki
+            self.fields['ispolnitel'].label_from_instance = self._podpis_sotrudnika
+
+    @staticmethod
+    def _podpis_sotrudnika(sotrudnik):
+        imya = sotrudnik.get_full_name() or sotrudnik.username
+        if sotrudnik.dolzhnost:
+            return f'{imya} — {sotrudnik.dolzhnost}'
+        return imya
 
 
 class KommentariiForm(forms.ModelForm):
@@ -60,6 +69,13 @@ class PereznachitForm(forms.Form):
     def __init__(self, *args, zadacha=None, **kwargs):
         super().__init__(*args, **kwargs)
         if zadacha is not None:
-            self.fields['novyi_ispolnitel'].queryset = zadacha.otdel.sotrudniki.filter(
-                rol='sotrudnik'
-            ).exclude(id=zadacha.ispolnitel_id)
+            sotrudniki = zadacha.otdel.sotrudniki.filter(rol='sotrudnik').exclude(id=zadacha.ispolnitel_id)
+            self.fields['novyi_ispolnitel'].queryset = sotrudniki
+            self.fields['novyi_ispolnitel'].label_from_instance = self._podpis_sotrudnika
+
+    @staticmethod
+    def _podpis_sotrudnika(sotrudnik):
+        imya = sotrudnik.get_full_name() or sotrudnik.username
+        if sotrudnik.dolzhnost:
+            return f'{imya} — {sotrudnik.dolzhnost}'
+        return imya

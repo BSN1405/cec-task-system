@@ -3,11 +3,54 @@
 <h1>Новое служебное поручение</h1>
 
 <div class="kartochka">
-    <form method="post">
+    <form method="post" enctype="multipart/form-data" class="forma-prikrepleniya">
         {% csrf_token %}
-        {{ form.as_p }}
+
+        <p>
+            <label for="{{ form.zagolovok.id_for_label }}">Заголовок</label>
+            {{ form.zagolovok }}
+            {{ form.zagolovok.errors }}
+        </p>
+        <p>
+            <label for="{{ form.opisanie.id_for_label }}">Описание</label>
+            {{ form.opisanie }}
+            {{ form.opisanie.errors }}
+        </p>
+        <p>
+            <label for="{{ form.ispolnitel.id_for_label }}">Исполнитель</label>
+            {{ form.ispolnitel }}
+            {{ form.ispolnitel.errors }}
+        </p>
+        <p>
+            <label for="{{ form.prioritet.id_for_label }}">Приоритет</label>
+            {{ form.prioritet }}
+            {{ form.prioritet.errors }}
+        </p>
+        <p>
+            <label for="{{ form.srok_vypolneniya.id_for_label }}">Срок выполнения</label>
+            {{ form.srok_vypolneniya }}
+            {{ form.srok_vypolneniya.errors }}
+        </p>
+        <p>
+            <label class="knopka-skrepka" for="{{ form.fail.id_for_label }}">
+                📎 <span class="skrepka-tekst">Прикрепить файл (необязательно)</span>
+            </label>
+            {{ form.fail }}
+        </p>
+
+        {{ form.non_field_errors }}
+
         <button type="submit">Создать</button>
         <a href="{% url 'dashboard' %}" class="knopka" style="background-color:#5a6672;">Отмена</a>
     </form>
 </div>
+
+<script>
+document.querySelectorAll('.forma-prikrepleniya input[type="file"]').forEach(function (input) {
+    input.addEventListener('change', function () {
+        var tekst = input.previousElementSibling.querySelector('.skrepka-tekst');
+        tekst.textContent = input.files.length > 0 ? input.files[0].name : 'Прикрепить файл (необязательно)';
+    });
+});
+</script>
 {% endblock %}

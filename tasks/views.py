@@ -1,5 +1,6 @@
 from datetime import datetime
 from io import BytesIO
+import os
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -19,7 +20,7 @@ from xhtml2pdf import default as pisa_default
 from django.db.models import Count, Q
 
 from .forms import KommentariiForm, ZadachaForm, VlozhenieForm, PereznachitForm
-from .models import Zadacha
+from .models import Zadacha, Vlozhenie
 from .notifications import (
     uvedomit_o_novoi_zadache,
     uvedomit_o_proverke,
@@ -116,7 +117,7 @@ def sozdat_zadachu(request):
         raise PermissionDenied('Создавать поручения может только руководитель отдела.')
 
     if request.method == 'POST':
-        form = ZadachaForm(request.POST, rukovoditel=polzovatel)
+        form = ZadachaForm(request.POST, request.FILES, rukovoditel=polzovatel)
         if form.is_valid():
             zadacha = form.save(commit=False)
             zadacha.otdel = polzovatel.otdel
@@ -128,6 +129,15 @@ def sozdat_zadachu(request):
             else:
                 zadacha.save()
                 zadacha.sozdana(polzovatel)
+
+                fail = form.cleaned_data.get('fail')
+                if fail:
+                    Vlozhenie.objects.create(
+                        zadacha=zadacha,
+                        fail=fail,
+                        zagruzil=polzovatel,
+                    )
+
                 uvedomit_o_novoi_zadache(zadacha)
                 messages.success(request, 'Поручение создано и назначено сотруднику.')
                 return redirect('dashboard')
@@ -135,7 +145,6 @@ def sozdat_zadachu(request):
         form = ZadachaForm(rukovoditel=polzovatel)
 
     return render(request, 'tasks/sozdat_zadachu.html', {'form': form})
-
 
 @login_required
 def detal_zadachi(request, pk):
@@ -396,3 +405,21 @@ def pereznachit_zadachu(request, pk):
             messages.error(request, 'Выберите корректного нового исполнителя.')
 
     return redirect('detal_zadachi', pk=pk)
+
+@login_required
+def udalit_vlozhenie(request, pk):
+    vlozhenie = get_object_or_404(Vlozhenie, pk=pk)
+    zadacha = vlozhenie.zadacha
+    polzovatel = request.user
+
+    if polzovatel.id not in (vlozhenie.zagruzil_id, zadacha.postavil_id):
+        raise PermissionDenied('Вы не можете открепить этот файл.')
+
+    if request.method == 'POST':
+        put_k_failu = vlozhenie.fail.path
+        vlozhenie.delete()
+        if os.path.exists(put_k_failu):
+            os.remove(put_k_failu)
+        messages.success(request, 'Файл откреплён.')
+
+    return redirect('detal_zadachi', pk=zadacha.pk)

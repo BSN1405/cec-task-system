@@ -3,7 +3,7 @@
     --tsvet-osnovnoi-svetlee: #2c5372;
     --tsvet-akcent: #a83232;
     --tsvet-fon: #f4f6f8;
-    --tsvet-karточка: #ffffff;
+    --tsvet-kartochka: #ffffff;
     --tsvet-granitsa: #d7dde3;
     --tsvet-tekst: #222222;
     --tsvet-tekst-vtorichnyi: #5a6672;
@@ -82,7 +82,7 @@ main.soderzhimoe {
 }
 
 .kartochka {
-    background-color: var(--tsvet-karточка);
+    background-color: var(--tsvet-kartochka);
     border: 1px solid var(--tsvet-granitsa);
     border-radius: 4px;
     padding: 24px;
@@ -151,7 +151,7 @@ input[type="file"], textarea, select {
 table {
     width: 100%;
     border-collapse: collapse;
-    background-color: var(--tsvet-karточка);
+    background-color: var(--tsvet-kartochka);
 }
 table th {
     background-color: var(--tsvet-osnovnoi);
@@ -170,7 +170,7 @@ table tr:hover td { background-color: #f7f9fb; }
 /* --- Список задач --- */
 .spisok-zadach { list-style: none; padding: 0; }
 .spisok-zadach li {
-    background-color: var(--tsvet-karточка);
+    background-color: var(--tsvet-kartochka);
     border: 1px solid var(--tsvet-granitsa);
     border-left: 4px solid var(--tsvet-osnovnoi);
     border-radius: 4px;
@@ -202,7 +202,7 @@ table tr:hover td { background-color: #f7f9fb; }
     min-height: 90vh;
 }
 .login-card {
-    background-color: var(--tsvet-karточка);
+    background-color: var(--tsvet-kartochka);
     border: 1px solid var(--tsvet-granitsa);
     border-top: 4px solid var(--tsvet-osnovnoi);
     border-radius: 4px;
@@ -221,3 +221,117 @@ footer.podval {
     border-top: 1px solid var(--tsvet-granitsa);
     margin-top: 40px;
 }
+
+/* --- Информация о задаче в виде компактной таблицы --- */
+.info-grid {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    row-gap: 10px;
+    column-gap: 16px;
+    margin: 0;
+}
+.info-grid dt {
+    color: var(--tsvet-tekst-vtorichnyi);
+    font-size: 13px;
+    font-weight: 600;
+}
+.info-grid dd {
+    margin: 0;
+}
+
+/* --- Сворачиваемые блоки (details/summary) --- */
+details.kartochka {
+    padding: 0;
+}
+details.kartochka summary {
+    cursor: pointer;
+    padding: 16px 24px;
+    font-weight: 600;
+    color: var(--tsvet-osnovnoi);
+    list-style: none;
+    font-size: 16px;
+    user-select: none;
+}
+details.kartochka summary::-webkit-details-marker {
+    display: none;
+}
+details.kartochka summary::before {
+    content: '▸';
+    margin-right: 8px;
+    display: inline-block;
+    transition: transform 0.15s;
+}
+details.kartochka[open] summary::before {
+    transform: rotate(90deg);
+}
+details.kartochka .details-soderzhimoe {
+    padding: 0 24px 24px;
+}
+
+/* --- Панель действий --- */
+.panel-deistvii {
+    background-color: #eaf1f7;
+    border: 1px solid #c3d6e8;
+    border-left: 4px solid var(--tsvet-osnovnoi);
+}
+.panel-deistvii h3 {
+    margin-top: 0;
+}
+
+/* --- Кастомная кнопка прикрепления файла --- */
+.forma-prikrepleniya input[type="file"] {
+    display: none;
+}
+.knopka-skrepka {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: var(--tsvet-fon);
+    border: 1px dashed var(--tsvet-granitsa);
+    border-radius: 4px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--tsvet-tekst-vtorichnyi);
+    margin-top: 4px;
+}
+.knopka-skrepka:hover {
+    border-color: var(--tsvet-osnovnoi);
+    color: var(--tsvet-osnovnoi);
+}
+
+/* --- Красивая версия карточки задачи --- */
+.info-grid--krasivo {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    row-gap: 0;
+    column-gap: 20px;
+}
+.info-grid--krasivo dt {
+    color: var(--tsvet-tekst-vtorichnyi);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 14px 0;
+    border-top: 1px solid var(--tsvet-granitsa);
+}
+.info-grid--krasivo dd {
+    margin: 0;
+    padding: 14px 0;
+    border-top: 1px solid var(--tsvet-granitsa);
+}
+.info-grid--krasivo dt:first-of-type,
+.info-grid--krasivo dd:first-of-type {
+    border-top: none;
+}
+.info-grid--krasivo .status-znachok {
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    background-color: #e8f0f7;
+    color: var(--tsvet-osnovnoi);
+}
+.info-grid--krasivo .status-znachok.status-vypolnena { background-color: #e3f3e9; color: var(--tsvet-uspeh); }
+.info-grid--krasivo .status-znachok.status-na-proverke { background-color: #fdf3d9; color: var(--tsvet-preduprezhdenie); }
+.info-grid--krasivo .status-znachok.status-na-dorabotke { background-color: #fbe9e9; color: var(--tsvet-oshibka); }

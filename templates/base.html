@@ -4,13 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <title>{% block title %}ЦИК КР — Служебные поручения{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=3">
 </head>
 <body>
     <header class="shapka">
         <a href="{% url 'dashboard' %}" class="nazvanie">
-            Центральная комиссия по выборам и проведению референдумов КР
-            <span class="podzagolovok">Информационная система управления служебными поручениями</span>
+            Информационная система управления служебными поручениями
         </a>
     </header>
 
@@ -47,7 +46,7 @@
     </main>
 
     <footer class="podval">
-        ЦИК Кыргызской Республики — Информационная система служебных поручений (учебный демонстрационный проект)
+        Информационная система служебных поручений
     </footer>
 </body>
 </html>

@@ -8,11 +8,13 @@
     <table>
         <tr>
             <th>Сотрудник</th>
+            <th>Должность</th>
             <th>Активных поручений</th>
         </tr>
         {% for s in zagruzhennost %}
         <tr>
             <td>{{ s.get_full_name|default:s.username }}</td>
+            <td>{{ s.dolzhnost|default:"—" }}</td>
             <td>{{ s.aktivnykh }}</td>
         </tr>
         {% endfor %}
